@@ -16,20 +16,23 @@ import (
 	"sync"
 
 	"github.com/cheggaaa/pb/v3"
-	"github.com/corpix/uarand"
 	"golang.org/x/xerrors"
 )
 
 const (
-	usernameAvailableAPI = "https://api.twitter.com/i/users/username_available.json"
+	usernameAvailableAPI = "https://api.twitter.com/1.1/statuses/user_timeline.json"
 	proxiesFileName      = "proxies.txt"
-	maxGoroutineCount    = 100
+	maxGoroutineCount    = 5
+	twitterToken         = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 )
 
 type apiResponse struct {
-	Valid  bool   `json:"valid"`
-	Reason string `json:"reason"`
-	Desc   string `json:"desc"`
+	Errors []Error `json:"errors"`
+}
+
+type Error struct {
+	Code    int    `json:"code"`
+	Message string `json:"message"`
 }
 
 func main() {
@@ -168,7 +171,7 @@ func yn(question string) bool {
 
 func check(ctx context.Context, id string, proxies []*url.URL) (bool, error) {
 	query := url.Values{
-		"username": []string{id},
+		"screen_name": []string{id},
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s?%s", usernameAvailableAPI, query.Encode()), nil)
@@ -176,7 +179,7 @@ func check(ctx context.Context, id string, proxies []*url.URL) (bool, error) {
 		return false, xerrors.Errorf("failed to initialize request: %w", err)
 	}
 
-	req.Header.Add("User-Agent", uarand.GetRandom())
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", twitterToken))
 
 	client := http.DefaultClient
 
@@ -197,13 +200,17 @@ func check(ctx context.Context, id string, proxies []*url.URL) (bool, error) {
 
 	defer response.Body.Close()
 
+	if response.StatusCode != http.StatusNotFound {
+		return false, nil
+	}
+
 	data := new(apiResponse)
 
 	if err = json.NewDecoder(response.Body).Decode(&data); err != nil {
 		return false, xerrors.Errorf("failed to decode response body: %w", err)
 	}
 
-	return data.Valid, nil
+	return data.Errors[0].Code == 34, nil
 }
 
 func selectProxy(proxies []*url.URL) *url.URL {
