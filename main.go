@@ -23,7 +23,7 @@ import (
 const (
 	usernameAvailableAPI = "https://api.twitter.com/i/users/username_available.json"
 	proxiesFileName      = "proxies.txt"
-	maxGoroutineCount    = 20
+	maxGoroutineCount    = 500
 )
 
 type apiResponse struct {
