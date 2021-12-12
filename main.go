@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/cheggaaa/pb/v3"
 	"golang.org/x/xerrors"
@@ -78,7 +79,7 @@ func main() {
 		log.Fatalf("failed to load proxies: %s\n", err.Error())
 	}
 
-	for _, target := range targets {
+	for i, target := range targets {
 		wg.Add(1)
 		limiter <- struct{}{}
 
@@ -99,6 +100,10 @@ func main() {
 				queue <- target
 			}
 		}(target)
+
+		if i%50 == 0 {
+			time.Sleep(5 * time.Second)
+		}
 	}
 
 	go func() {
