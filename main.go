@@ -23,11 +23,12 @@ import (
 const (
 	version = "0.0.0"
 
-	userAvailableAPI  = "https://api.twitter.com/i/users/username_available.json"
-	userTimelineAPI   = "https://api.twitter.com/1.1/statuses/user_timeline.json"
-	proxiesFileName   = "proxies.txt"
-	maxGoroutineCount = 5
-	twitterToken      = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+	userAvailableAPI     = "https://api.twitter.com/i/users/username_available.json"
+	userTimelineAPI      = "https://api.twitter.com/1.1/statuses/user_timeline.json"
+	proxiesFileName      = "proxies.txt"
+	resultFileNameFormat = "result_20060102150405.txt"
+	maxGoroutineCount    = 5
+	twitterToken         = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 )
 
 type userAvailableAPIResponse struct {
@@ -120,9 +121,15 @@ func main() {
 
 	fmt.Printf("Available IDs: %d / %d\n", len(availableIDs), len(targets))
 
-	for _, availableID := range availableIDs {
-		fmt.Printf("@%s\n", availableID)
+	filename := time.Now().Format(resultFileNameFormat)
+	if err := save(availableIDs, filename); err != nil {
+		log.Fatalf("failed to save available IDs: %s\n", err.Error())
 	}
+
+	fmt.Printf("Saved to %s\n", filename)
+
+	fmt.Print("Press Enter to close")
+	fmt.Scan()
 }
 
 func exists(filename string) bool {
@@ -259,4 +266,25 @@ func selectProxy(proxies []*url.URL) *url.URL {
 	proxy := proxies[idx]
 
 	return proxy
+}
+
+func save(availableIDs []string, filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return xerrors.Errorf("failed to create file: %w", err)
+	}
+
+	defer file.Close()
+
+	text := ""
+	for _, availableID := range availableIDs {
+		text += fmt.Sprintf("@%s\n", availableID)
+	}
+
+	_, err = file.WriteString(text)
+	if err != nil {
+		return xerrors.Errorf("failed to write file: %w", err)
+	}
+
+	return nil
 }
