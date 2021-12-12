@@ -20,13 +20,20 @@ import (
 )
 
 const (
-	usernameAvailableAPI = "https://api.twitter.com/1.1/statuses/user_timeline.json"
-	proxiesFileName      = "proxies.txt"
-	maxGoroutineCount    = 5
-	twitterToken         = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
+	userAvailableAPI  = "https://api.twitter.com/i/users/username_available.json"
+	userTimelineAPI   = "https://api.twitter.com/1.1/statuses/user_timeline.json"
+	proxiesFileName   = "proxies.txt"
+	maxGoroutineCount = 5
+	twitterToken      = "AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 )
 
-type apiResponse struct {
+type userAvailableAPIResponse struct {
+	Valid  bool   `json:"valid"`
+	Reason string `json:"reason"`
+	Desc   string `json:"desc"`
+}
+
+type userTimelineAPIResponse struct {
 	Errors []Error `json:"errors"`
 }
 
@@ -174,7 +181,7 @@ func check(ctx context.Context, id string, proxies []*url.URL) (bool, error) {
 		"screen_name": []string{id},
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s?%s", usernameAvailableAPI, query.Encode()), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s?%s", userTimelineAPI, query.Encode()), nil)
 	if err != nil {
 		return false, xerrors.Errorf("failed to initialize request: %w", err)
 	}
@@ -204,13 +211,39 @@ func check(ctx context.Context, id string, proxies []*url.URL) (bool, error) {
 		return false, nil
 	}
 
-	data := new(apiResponse)
+	data := new(userTimelineAPIResponse)
 
 	if err = json.NewDecoder(response.Body).Decode(&data); err != nil {
 		return false, xerrors.Errorf("failed to decode response body: %w", err)
 	}
 
-	return data.Errors[0].Code == 34, nil
+	if data.Errors[0].Code != 34 {
+		return false, nil
+	}
+
+	query = url.Values{
+		"username": []string{id},
+	}
+
+	req, err = http.NewRequestWithContext(ctx, http.MethodGet, fmt.Sprintf("%s?%s", userAvailableAPI, query.Encode()), nil)
+	if err != nil {
+		return false, xerrors.Errorf("failed to initialize request: %w", err)
+	}
+
+	response, err = client.Do(req)
+	if err != nil {
+		return false, xerrors.Errorf("failed to send HTTP request: %w", err)
+	}
+
+	defer response.Body.Close()
+
+	d := new(userAvailableAPIResponse)
+
+	if err = json.NewDecoder(response.Body).Decode(&d); err != nil {
+		return false, xerrors.Errorf("failed to decode response body: %w", err)
+	}
+
+	return d.Valid, nil
 }
 
 func selectProxy(proxies []*url.URL) *url.URL {
