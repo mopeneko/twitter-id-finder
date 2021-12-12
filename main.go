@@ -206,7 +206,7 @@ func yn(question string) bool {
 	for {
 		fmt.Printf("%s [Y/n]: ", question)
 		var answer string
-		fmt.Scanf("%s", &answer)
+		fmt.Scanln(&answer)
 		answerLower := strings.ToLower(answer)
 		if len(answerLower) == 0 || answerLower == "y" {
 			return true
