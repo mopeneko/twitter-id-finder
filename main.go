@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
@@ -74,38 +75,44 @@ func main() {
 	var wg sync.WaitGroup
 	var wgQueue sync.WaitGroup
 	limiter := make(chan struct{}, maxGoroutineCount)
+	signalChannel := make(chan os.Signal, 1)
+	signal.Notify(signalChannel, os.Interrupt)
+	finishChannel := make(chan struct{}, 1)
 
 	proxies, err := loadProxies(proxiesFileName)
 	if err != nil {
 		log.Fatalf("failed to load proxies: %s\n", err.Error())
 	}
 
-	for i, target := range targets {
-		wg.Add(1)
-		limiter <- struct{}{}
+	wg.Add(len(targets))
 
-		go func(target string) {
-			defer wg.Done()
-			defer func() { <-limiter }()
-			defer bar.Increment()
+	go func() {
+		for i, target := range targets {
+			limiter <- struct{}{}
 
-			ok, err := check(ctx, target, proxies)
-			if err != nil {
-				log.Printf("An error occured: %s\n", err.Error())
-				return
+			go func(target string) {
+				defer wg.Done()
+				defer func() { <-limiter }()
+				defer bar.Increment()
+
+				ok, err := check(ctx, target, proxies)
+				if err != nil {
+					log.Printf("An error occured: %s\n", err.Error())
+					return
+				}
+
+				if ok {
+					log.Printf("Found! @%s\n", target)
+					wgQueue.Add(1)
+					queue <- target
+				}
+			}(target)
+
+			if (i+1)%50 == 0 {
+				time.Sleep(5 * time.Second)
 			}
-
-			if ok {
-				log.Printf("Found! @%s\n", target)
-				wgQueue.Add(1)
-				queue <- target
-			}
-		}(target)
-
-		if (i+1)%50 == 0 {
-			time.Sleep(5 * time.Second)
 		}
-	}
+	}()
 
 	go func() {
 		for v := range queue {
@@ -114,10 +121,29 @@ func main() {
 		}
 	}()
 
+	go func() {
+		for {
+			select {
+			case <-signalChannel:
+				filename := time.Now().Format(resultFileNameFormat)
+				if err := save(availableIDs, filename); err != nil {
+					log.Fatalf("failed to save available IDs: %s\n", err.Error())
+				}
+
+				fmt.Printf("Saved to %s\n", filename)
+				os.Exit(0)
+
+			case <-finishChannel:
+				return
+			}
+		}
+	}()
+
 	wg.Wait()
 	wgQueue.Wait()
 
 	bar.Finish()
+	finishChannel <- struct{}{}
 
 	fmt.Printf("Available IDs: %d / %d\n", len(availableIDs), len(targets))
 
