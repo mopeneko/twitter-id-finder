@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	version = "0.0.0"
+	version = "0.0.2"
 
 	userAvailableAPI     = "https://api.twitter.com/i/users/username_available.json"
 	userTimelineAPI      = "https://api.twitter.com/1.1/statuses/user_timeline.json"

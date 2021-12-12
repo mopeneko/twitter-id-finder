@@ -10,6 +10,7 @@ go build -o main main.go
 
 $ ./main
 Twitter ID Finder
+Version 0.0.2
 Creator: @_m_vt
 
 Digits: 2
@@ -17,6 +18,7 @@ Target IDs: 100
 Really? [Y/n]: 
 100 / 100 [----------------------------------------------------------------] 100.00% 95 p/s 1.2s
 Available IDs: 0 / 100
+Saved to result_20211212183731.txt
 ```
 
 ## proxies.txt
