@@ -53,9 +53,14 @@ func main() {
 	fmt.Println("Creator: @_m_vt")
 	fmt.Println()
 
-	fmt.Print("Digits: ")
 	var digits int
-	fmt.Scanf("%d", &digits)
+	for {
+		fmt.Print("Digits: ")
+		fmt.Scanf("%d", &digits)
+		if digits > 0 {
+			break
+		}
+	}
 
 	targets := make([]string, 0)
 	for i := 0; float64(i) < math.Pow10(digits); i++ {
