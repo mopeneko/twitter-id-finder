@@ -47,4 +47,5 @@
 main
 dist/
 
+proxies.txt
 result_*.txt
