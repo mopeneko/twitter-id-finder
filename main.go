@@ -101,7 +101,7 @@ func main() {
 			}
 		}(target)
 
-		if i%50 == 0 {
+		if (i+1)%50 == 0 {
 			time.Sleep(5 * time.Second)
 		}
 	}
