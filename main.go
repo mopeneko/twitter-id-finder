@@ -20,6 +20,8 @@ import (
 )
 
 const (
+	version = "0.0.0"
+
 	userAvailableAPI  = "https://api.twitter.com/i/users/username_available.json"
 	userTimelineAPI   = "https://api.twitter.com/1.1/statuses/user_timeline.json"
 	proxiesFileName   = "proxies.txt"
@@ -44,6 +46,7 @@ type Error struct {
 
 func main() {
 	fmt.Println("Twitter ID Finder")
+	fmt.Printf("Version %s\n", version)
 	fmt.Println("Creator: @_m_vt")
 	fmt.Println()
 
