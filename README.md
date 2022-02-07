@@ -24,3 +24,11 @@ Saved to result_20211212183731.txt
 ## proxies.txt
 
 https://pkg.go.dev/net/url#URL のURL形式を用いてプロキシを行毎に記述してください。
+
+### 例
+
+```
+socks5://example.com:8080
+socks5://example.com:8081
+socks5://example.com:8082
+```
